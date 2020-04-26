@@ -3,8 +3,8 @@ ifneq ($(KERNELRELEASE),)
 obj-m  := pps-stm32.o
 
 else
-# normal makefile
-KDIR = ../build
+# normal makefile - set this directory to the kernel build directory
+KDIR = ../../build
 
 .PHONY: default clean
 
