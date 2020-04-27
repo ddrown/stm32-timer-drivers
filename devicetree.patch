@@ -1,15 +1,21 @@
 diff --git a/arch/arm/boot/dts/stm32mp157a-dk1.dts b/arch/arm/boot/dts/stm32mp157a-dk1.dts
-index 9ec45de3c664..26ae438d2091 100644
+index 9ec45de3c664..df67b59455a1 100644
 --- a/arch/arm/boot/dts/stm32mp157a-dk1.dts
 +++ b/arch/arm/boot/dts/stm32mp157a-dk1.dts
-@@ -617,20 +626,34 @@
+@@ -617,20 +617,40 @@
  	status = "disabled";
  };
  
 +&pinctrl {
 +  pps_pins: pps-pins-0 {
 +    pins {
-+      pinmux = <STM32_PINMUX('A', 8, AF1)>; /* TIM1_CH1 */
++      pinmux = <STM32_PINMUX('A', 8, AF1)>; /* TIM1_CH1, PA8, pin 7 on rpi header */
++      bias-disable;
++    };
++  };
++  tcxo: tim5-ch2 {
++    pins {
++      pinmux = <STM32_PINMUX('H', 11, AF2)>; /* TIM5_CH2, PH11, pin 31 on rpi header */
 +      bias-disable;
 +    };
 +  };
@@ -50,25 +56,29 @@ index 9ec45de3c664..26ae438d2091 100644
  };
  
  &timers3 {
-@@ -666,7 +689,8 @@
+@@ -666,15 +686,17 @@
  &timers5 {
  	/delete-property/dmas;
  	/delete-property/dma-names;
 -	status = "disabled";
+-	pwm {
+-		pinctrl-0 = <&pwm5_pins_a>;
+-		pinctrl-1 = <&pwm5_sleep_pins_a>;
+-		pinctrl-names = "default", "sleep";
+-		status = "okay";
+-	};
+-	timer@4 {
++	/delete-property/pwm;
++	/delete-property/timer@4;
 +	status = "okay";
-+
- 	pwm {
- 		pinctrl-0 = <&pwm5_pins_a>;
- 		pinctrl-1 = <&pwm5_sleep_pins_a>;
-@@ -676,6 +700,11 @@
- 	timer@4 {
- 		status = "okay";
- 	};
 +
 +	clocksource@5 {
 +		compatible = "st,stm32-timer-clocksource";
-+		status = "okay";
-+	};
+ 		status = "okay";
++		pinctrl-0 = <&tcxo>;
++		pinctrl-names = "default";
++		clock-source = <2>;
++		clock-frequency = <24000000>;
+ 	};
  };
  
- &timers6 {
