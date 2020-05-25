@@ -30,8 +30,9 @@ struct stm32_pps {
   struct pps_source_info info;
   int ready;
   u32 events;
-  u32 count_at_interrupt;
+  u32 count_at_interrupt[3];
   u32 ps_per_hz;
+  u64 local_count;
   struct pps_event_time ts;
   struct timespec64 delta;
   int channel_reg_offset;
@@ -54,7 +55,7 @@ static DEVICE_ATTR(pps_ts, S_IRUGO, pps_ts_show, NULL);
 
 static ssize_t count_at_interrupt_show(struct device *dev, struct device_attribute *attr, char *buf) {
   struct stm32_pps *ddata = dev_get_drvdata(dev);
-  return snprintf(buf, PAGE_SIZE, "%u\n", ddata->count_at_interrupt);
+  return snprintf(buf, PAGE_SIZE, "%u\n%u\n%u\n", ddata->count_at_interrupt[0], ddata->count_at_interrupt[1], ddata->count_at_interrupt[2]);
 }
 
 static DEVICE_ATTR(count_at_interrupt, S_IRUGO, count_at_interrupt_show, NULL);
@@ -106,6 +107,14 @@ static ssize_t events_show(struct device *dev, struct device_attribute *attr, ch
 
 static DEVICE_ATTR(events, S_IRUGO, events_show, NULL);
 
+static ssize_t local_count_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  struct stm32_pps *ddata = dev_get_drvdata(dev);
+
+  return snprintf(buf, PAGE_SIZE, "%llu\n", ddata->local_count);
+}
+
+static DEVICE_ATTR(local_count, S_IRUGO, local_count_show, NULL);
+
 static struct attribute *attrs[] = {
   &dev_attr_cnt.attr,
   &dev_attr_ccr1.attr,
@@ -116,6 +125,7 @@ static struct attribute *attrs[] = {
   &dev_attr_pps_ts.attr,
   &dev_attr_count_at_interrupt.attr,
   &dev_attr_interrupt_delta.attr,
+  &dev_attr_local_count.attr,
   NULL,
 };
 
@@ -124,32 +134,53 @@ static struct attribute_group attr_group = {
 };
 
 static irqreturn_t stm32_pps_irq(int irq, void *devdata) {
+  struct system_time_snapshot snap;
   struct stm32_pps *ddata = devdata;
-  u32 sr, tmp;
-  u16 cnt, count_at_capture, delta_count; // TODO: 32bit vs 16bit
+  u32 sr, tmp, cnt1, cnt2, cnt3;
+  u16 count_at_capture, delta_count, read_delta; // TODO: 32bit vs 16bit
   // TIM_SR_CC1IF..CC4IF
   u32 cc_event = 1 << ddata->channel;
 
   regmap_read(ddata->regmap, TIM_SR, &sr);
   if(sr & cc_event) {
-    regmap_read(ddata->regmap, TIM_CNT, &tmp);
-    cnt = tmp;
-    pps_get_ts(&ddata->ts);
+    // measure the time it takes to read the clock to adjust for that latency
+    regmap_read(ddata->regmap, TIM_CNT, &cnt1);
+    ktime_get_snapshot(&snap);
+    regmap_read(ddata->regmap, TIM_CNT, &cnt2);
+    regmap_read(ddata->regmap, TIM_CNT, &cnt3);
+
+    ddata->ts.ts_real = ktime_to_timespec64(snap.real);
+#ifdef CONFIG_NTP_PPS
+    ddata->ts.ts_raw = ktime_to_timespec64(snap.raw);
+#endif
+    ddata->local_count = snap.cycles;
+
     regmap_read(ddata->regmap, ddata->channel_reg_offset, &tmp);
     count_at_capture = tmp;
 
-    ddata->count_at_interrupt = cnt;
+    ddata->count_at_interrupt[0] = cnt1;
+    ddata->count_at_interrupt[1] = cnt2;
+    ddata->count_at_interrupt[2] = cnt3;
     ddata->events++;
-    delta_count = cnt - count_at_capture;
 
+    delta_count = (u16)cnt1 - count_at_capture;
+
+    // assume ktime_get_snapshot takes its time reading at 1/2 regmap_read
+    read_delta = cnt3-cnt2;
+    read_delta = read_delta/2;
+    delta_count += read_delta;
+
+    // at 209MHz, 16bits has 313us before overflowing
     ddata->delta.tv_sec = 0;
     ddata->delta.tv_nsec = (delta_count * ddata->ps_per_hz) / 1000;
 
+    // adjust interrupt timestamp for when the PPS actually happened
     pps_sub_ts(&ddata->ts, ddata->delta);
 
     if(ddata->ready && ddata->pps)
       pps_event(ddata->pps, &ddata->ts, PPS_CAPTUREASSERT, NULL);
 
+    // clear the input capture flag
     regmap_update_bits(ddata->regmap, TIM_SR, cc_event, 0);
 
     return IRQ_HANDLED;
