@@ -30,7 +30,7 @@ struct stm32_pps {
   struct pps_source_info info;
   int ready;
   u32 events;
-  u32 count_at_interrupt[3];
+  u32 count_at_interrupt[2];
   u32 ps_per_hz;
   u64 local_count;
   struct pps_event_time ts;
@@ -55,7 +55,7 @@ static DEVICE_ATTR(pps_ts, S_IRUGO, pps_ts_show, NULL);
 
 static ssize_t count_at_interrupt_show(struct device *dev, struct device_attribute *attr, char *buf) {
   struct stm32_pps *ddata = dev_get_drvdata(dev);
-  return snprintf(buf, PAGE_SIZE, "%u\n%u\n%u\n", ddata->count_at_interrupt[0], ddata->count_at_interrupt[1], ddata->count_at_interrupt[2]);
+  return snprintf(buf, PAGE_SIZE, "%u\n%u\n", ddata->count_at_interrupt[0], ddata->count_at_interrupt[1]);
 }
 
 static DEVICE_ATTR(count_at_interrupt, S_IRUGO, count_at_interrupt_show, NULL);
@@ -136,7 +136,7 @@ static struct attribute_group attr_group = {
 static irqreturn_t stm32_pps_irq(int irq, void *devdata) {
   struct system_time_snapshot snap;
   struct stm32_pps *ddata = devdata;
-  u32 sr, tmp, cnt1, cnt2, cnt3;
+  u32 sr, tmp, cnt1, cnt2;
   u16 count_at_capture, delta_count, read_delta; // TODO: 32bit vs 16bit
   // TIM_SR_CC1IF..CC4IF
   u32 cc_event = 1 << ddata->channel;
@@ -145,9 +145,8 @@ static irqreturn_t stm32_pps_irq(int irq, void *devdata) {
   if(sr & cc_event) {
     // measure the time it takes to read the clock to adjust for that latency
     regmap_read(ddata->regmap, TIM_CNT, &cnt1);
-    ktime_get_snapshot(&snap);
     regmap_read(ddata->regmap, TIM_CNT, &cnt2);
-    regmap_read(ddata->regmap, TIM_CNT, &cnt3);
+    ktime_get_snapshot(&snap);
 
     ddata->ts.ts_real = ktime_to_timespec64(snap.real);
 #ifdef CONFIG_NTP_PPS
@@ -160,14 +159,12 @@ static irqreturn_t stm32_pps_irq(int irq, void *devdata) {
 
     ddata->count_at_interrupt[0] = cnt1;
     ddata->count_at_interrupt[1] = cnt2;
-    ddata->count_at_interrupt[2] = cnt3;
     ddata->events++;
 
-    delta_count = (u16)cnt1 - count_at_capture;
+    delta_count = (u16)cnt2 - count_at_capture;
 
-    // assume ktime_get_snapshot takes its time reading at 1/2 regmap_read
-    read_delta = cnt3-cnt2;
-    read_delta = read_delta/2;
+    // assume ktime_get_snapshot takes its time reading at the same spot as regmap_read
+    read_delta = cnt2-cnt1;
     delta_count += read_delta;
 
     // at 209MHz, 16bits has 313us before overflowing
