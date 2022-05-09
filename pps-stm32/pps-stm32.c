@@ -23,6 +23,9 @@
 #define TIM_SR_CC3IF    BIT(3)  /* CC3 IRQ flag */
 #define TIM_SR_CC4IF    BIT(4)  /* CC4 IRQ flag */
 
+#define TIM_TISEL 0x68
+#define TIM_RCR   0x30
+
 struct stm32_pps {
   struct regmap *regmap;
   struct clk *clk;
@@ -115,12 +118,117 @@ static ssize_t local_count_show(struct device *dev, struct device_attribute *att
 
 static DEVICE_ATTR(local_count, S_IRUGO, local_count_show, NULL);
 
+static ssize_t ccer_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_CCER, buf);
+}
+
+static DEVICE_ATTR(ccer, S_IRUGO, ccer_show, NULL);
+
+static ssize_t dier_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_DIER, buf);
+}
+
+static DEVICE_ATTR(dier, S_IRUGO, dier_show, NULL);
+
+static ssize_t ccmr1_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_CCMR1, buf);
+}
+
+static DEVICE_ATTR(ccmr1, S_IRUGO, ccmr1_show, NULL);
+
+static ssize_t ccmr2_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_CCMR2, buf);
+}
+
+static DEVICE_ATTR(ccmr2, S_IRUGO, ccmr2_show, NULL);
+
+static ssize_t tisel_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_TISEL, buf);
+}
+
+static DEVICE_ATTR(tisel, S_IRUGO, tisel_show, NULL);
+
+static ssize_t cr1_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_CR1, buf);
+}
+
+static DEVICE_ATTR(cr1, S_IRUGO, cr1_show, NULL);
+
+static ssize_t cr2_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_CR2, buf);
+}
+
+static DEVICE_ATTR(cr2, S_IRUGO, cr2_show, NULL);
+
+static ssize_t smcr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_SMCR, buf);
+}
+
+static DEVICE_ATTR(smcr, S_IRUGO, smcr_show, NULL);
+
+static ssize_t sr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_SR, buf);
+}
+
+static DEVICE_ATTR(sr, S_IRUGO, sr_show, NULL);
+
+static ssize_t egr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_EGR, buf);
+}
+
+static DEVICE_ATTR(egr, S_IRUGO, egr_show, NULL);
+
+static ssize_t psc_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_PSC, buf);
+}
+
+static DEVICE_ATTR(psc, S_IRUGO, psc_show, NULL);
+
+static ssize_t arr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_ARR, buf);
+}
+
+static DEVICE_ATTR(arr, S_IRUGO, arr_show, NULL);
+
+static ssize_t rcr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_RCR, buf);
+}
+
+static DEVICE_ATTR(rcr, S_IRUGO, rcr_show, NULL);
+
+static ssize_t bdtr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_BDTR, buf);
+}
+
+static DEVICE_ATTR(bdtr, S_IRUGO, bdtr_show, NULL);
+
+static ssize_t dcr_show(struct device *dev, struct device_attribute *attr, char *buf) {
+  return sysfs_show(dev, TIM_DCR, buf);
+}
+
+static DEVICE_ATTR(dcr, S_IRUGO, dcr_show, NULL);
+
 static struct attribute *attrs[] = {
+  &dev_attr_cr1.attr,
+  &dev_attr_cr2.attr,
+  &dev_attr_smcr.attr,
+  &dev_attr_dier.attr,
+  &dev_attr_sr.attr,
+  &dev_attr_egr.attr,
+  &dev_attr_ccmr1.attr,
+  &dev_attr_ccmr2.attr,
+  &dev_attr_ccer.attr,
   &dev_attr_cnt.attr,
+  &dev_attr_psc.attr,
+  &dev_attr_arr.attr,
+  &dev_attr_rcr.attr,
   &dev_attr_ccr1.attr,
   &dev_attr_ccr2.attr,
   &dev_attr_ccr3.attr,
   &dev_attr_ccr4.attr,
+  &dev_attr_bdtr.attr,
+  &dev_attr_dcr.attr,
+  &dev_attr_tisel.attr,
   &dev_attr_events.attr,
   &dev_attr_pps_ts.attr,
   &dev_attr_count_at_interrupt.attr,
