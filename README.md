@@ -1,4 +1,5 @@
 * devicetree.patch - contains the device tree changes to have a PPS on PA8 (tim1 ch1), and uses tim5 as a kernel clocksource using a 24MHz signal on PH11
+* pps-pin33.patch - another example device tree change for PPS on PC7 (tim8 ch2) as well as i2c5 enabled
 * clocksource-stm32 - provides a kernel clocksource (provides the wall clock time)
 * pps-stm32 - hardware pps timestamp capture driver
 

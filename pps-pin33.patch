@@ -1,0 +1,47 @@
+pps on raspberry pi gpio header pin 33 / PC7 / TIM8_CH2
+i2c5 enabled on the raspberry pi gpio header
+--- arch/arm/boot/dts/stm32mp157a-dk1.dts.orig	2022-05-08 21:58:49.980448234 -0500
++++ arch/arm/boot/dts/stm32mp157a-dk1.dts	2022-05-06 22:23:16.167304683 -0500
+@@ -460,7 +460,7 @@
+ 	pinctrl-1 = <&i2c5_pins_sleep_a>;
+ 	/delete-property/dmas;
+ 	/delete-property/dma-names;
+-	status = "disabled";
++	status = "okay";
+ };
+ 
+ &i2s2 {
+@@ -765,3 +765,33 @@
+ 	vdda-supply = <&vdd>;
+ 	status = "okay";
+ };
++
++&pinctrl {
++  pps_pins: pps-pins-0 {
++    pins {
++      pinmux = <STM32_PINMUX('C', 7, AF3)>; /* TIM8_CH2 */
++      bias-disable;
++    };
++  };
++};
++
++&timers8 {
++  /* spare dmas for other usage */
++  /delete-property/dmas;
++  /delete-property/dma-names;
++
++  /delete-property/pwm;
++  /delete-property/timer@7;
++
++  status = "okay";
++
++  pps {
++    pinctrl-0 = <&pps_pins>;
++    pinctrl-names = "default";
++    compatible = "st,stm32-timer-pps";
++    status = "okay";
++    channel = <2>;
++    interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
++    interrupt-names = "capture";
++  };
++};
