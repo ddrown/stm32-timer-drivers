@@ -328,7 +328,7 @@ static int stm32_pps_set_ic(struct stm32_pps *ddata) {
     case 2:
       enable_value = TIM_CCER_CC2E;
       channel_mask = TIM_CCMR_CC2S_TI1|TIM_CCMR_CC2S_TI2;
-      channel_value = TIM_CCMR_CC2S_TI1;
+      channel_value = TIM_CCMR_CC2S_TI2;
       channel_register = TIM_CCMR1;
       irq_enable = TIM_DIER_CC2IE;
       ddata->channel_reg_offset = TIM_CCR2;
@@ -344,7 +344,7 @@ static int stm32_pps_set_ic(struct stm32_pps *ddata) {
     case 4:
       enable_value = TIM_CCER_CC4E;
       channel_mask = TIM_CCMR_CC2S_TI1|TIM_CCMR_CC2S_TI2;
-      channel_value = TIM_CCMR_CC2S_TI1;
+      channel_value = TIM_CCMR_CC2S_TI2;
       channel_register = TIM_CCMR2;
       irq_enable = TIM_DIER_CC4IE;
       ddata->channel_reg_offset = TIM_CCR4;
